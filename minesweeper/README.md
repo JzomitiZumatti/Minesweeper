@@ -1,43 +1,46 @@
-# Minesweeper – Stage 1: Minefield Display
+# Minesweeper — Stage 2: Random Minefield
 
-A basic step in building the classic logic game **Minesweeper** using Java.
-
----
-
-## 🧠 Description
-
-Minesweeper is a game of logic where the player is presented with a field full of hidden mines. The goal is to mark the positions of all mines **without setting any of them off**.  
-It's not about guessing — the game provides hints showing how many mines surround each cell.  
-One wrong move, and game over!
+In this stage, we introduce randomness into the game.  
+It's no fun when the field has the same setup every time and you already know where all the mines are. Let's generate a **new configuration every time** the game starts!
 
 ---
 
-## 🎯 Objective (Stage 1)
+## 🎯 Objective
 
-Your task for this stage is simple:  
-✅ **Output a visual representation of the minefield.**
+- Prompt the player with:  
+  **`How many mines do you want on the field?`**
 
-- Define the field size (e.g. 9×9).
-- Place any number of mines you like (e.g. 10).
-- Show the mines in plain sight — we are not hiding them at this point.
-- Use any characters you want to represent:
-    - Mines (e.g. `X`)
-    - Safe cells (e.g. `.`)
+- Read the number of mines from the user input.
 
-Later, we will standardize the symbols, but for now — choose what works for you.
+- Generate a **9×9** field with that many randomly placed mines (`X`), and fill the remaining cells with dots (`.`) to represent safe cells.
+
+- Display the field to the player (mines are still visible at this stage).
 
 ---
 
-## 📌 Example
+## ✅ Requirements
 
-In this example, there are 10 mines on a 9×9 field:
+- The field must be **randomized** on each run.
+- The number of mines must **match the user input** exactly.
+- Do not place multiple mines in the same cell.
+- Use the following symbols:
+  - `X` — for mines
+  - `.` — for safe cells
+
+---
+
+## 💡 Example Output
+
+The greater-than symbol (`>`) represents user input.
+How many mines do you want on the field? `>` 10
+
 ```text
-.X.......
-.....X..X
-....X....
-.....X...
-..X......
-...X.....
-..X......
-..X......
+........X
+........X
+......X.X
+X........
+.........
+......X..
+XX......X
+.........
 .....X...
