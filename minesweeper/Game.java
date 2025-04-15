@@ -1,61 +1,50 @@
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 public class Game {
     private final Scanner scanner = new Scanner(System.in);
     private boolean isOn = true;
-    private Field field;
-    private int minesFound;
-    private void newGame() {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("How many mines do you want on the field? > ");
-        int minesQuantity = scanner.nextInt();
-        field = new Field(minesQuantity);
-        field.hideMines();
-        field.displayField();
+    private final Field field;
+
+    public Game(int mines) {
+        this.field = new Field(mines);
     }
 
     public void start() {
-        newGame();
+        Renderer.printField(field.getField(), field.getRevealed(), field.getMarks());
+
         while (isOn) {
-            takeTurn();
-            field.displayField();
-            isOn = isAllMinesFound();
-        }
-        System.out.println(Message.CONGRATULATIONS);
-    }
+            System.out.print(Message.TURN);
+            int col = scanner.nextInt() - 1;
+            int row = scanner.nextInt() - 1;
+            String choice = scanner.next();
 
-    private void takeTurn() {
-        int a; // column
-        int b; // row
-        do {
-            System.out.println(Message.TURN);
-            a = scanner.nextInt() + 1;
-            b = scanner.nextInt() + 1;
-            if (!isOutOfBounds(a) || !isOutOfBounds(b)) {
-                System.err.println(Message.CELL_IS_OUT_OF_BOUNDS);
+            if (!isValidMove(row, col)) {
+                System.out.println(Message.CELL_IS_OUT_OF_BOUNDS);
+                continue;
             }
-        } while (!isOutOfBounds(a) || !isOutOfBounds(b));
 
-        if (field.isCellNumber(a, b)) {
-            field.setOrDeleteMark(a, b);
-            System.out.println("Oh shit here we are again: a = " + a + " , b = " + b + ".");
-            minesFound += (int) field.countMines(a, b);
-            System.out.println(minesFound);
-
-        } else {
-            System.out.println(Message.CELL_IS_NUMBER);
+            if (field.isFirstMove() && choice.equalsIgnoreCase("free")) {
+                field.firstMove(row, col);
+            } else if (field.ifMineIsHere(row, col) && choice.equalsIgnoreCase("free")) {
+                field.revealAllMines();
+                Renderer.printField(field.getField(), field.getRevealed(), field.getMarks());
+                System.out.println(Message.MINE_STEPPED);
+                isOn = false;
+                break;
+            } else {
+                field.move(row, col, choice);
+                if (field.isAllMinesFound() || field.isWin()) {
+                    Renderer.printField(field.getField(), field.getRevealed(), field.getMarks());
+                    System.out.println(Message.CONGRATULATIONS);
+                    isOn = false;
+                    break;
+                }
+            }
+            Renderer.printField(field.getField(), field.getRevealed(), field.getMarks());
         }
     }
 
-    private boolean isOutOfBounds(int cellNumber) {
-        ArrayList<Integer> allowNumbers = new ArrayList<>(List.of(2, 3, 4, 5, 6, 7, 8, 9, 10));
-        return allowNumbers.stream()
-                .anyMatch(el -> el == cellNumber);
-    }
-
-    private boolean isAllMinesFound() {
-        return minesFound != field.getNumberOfMines();
+    private boolean isValidMove(int row, int col) {
+        return row >= 0 && row < 9 && col >= 0 && col < 9;
     }
 }

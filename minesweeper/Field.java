@@ -3,104 +3,87 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Field {
-    private final int SIZE = 12;
-    private final int numberOfMines;
-    private final char[][] arr = new char[SIZE][SIZE];
-    public List<int[]> mineCoordinates = new ArrayList<>();
+    private final int SIZE = 9;
+    private static final char MINE = 'X';
+    private static final char EMPTY = ' ';
 
-    public Field(int numberOfMines) {
-        this.numberOfMines = numberOfMines;
+    private final char[][] field;
+    private final boolean[][] revealed;
+    private final boolean[][] marks;
+    private final List<int[]> mineCoordinates = new ArrayList<>();
+    private final int mines;
+    private boolean firstMove = true;
+    private final Random random = new Random();
+
+    public Field(int mines) {
+        this.mines = mines;
+        this.field = new char[SIZE][SIZE];
+        this.revealed = new boolean[SIZE][SIZE];
+        this.marks = new boolean[SIZE][SIZE];
         initializeField();
-        placeMines();
-        calculateNumbers();
     }
 
     private void initializeField() {
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
-                arr[i][j] = '.';
-            }
-        }
-
-        int counter = 0;
-        for (int i = 0; i <= 1; i++) {
-            for (int j = 2; j < SIZE - 1; j++) {
-                counter++;
-                if (counter <= 9) {
-                    arr[i][j] = String.valueOf(counter).charAt(0);
-                } else {
-                    arr[i][j] = '-';
-                }
-            }
-        }
-        arr[0][0] = ' ';
-        arr[1][0] = '-';
-        arr[0][1] = '|';
-        arr[1][1] = '|';
-        counter = 0;
-        int counter2 = 0;
-        for (int i = 2; i < SIZE - 1; i++) {
-            counter2++;
-            counter++;
-            for (int j = 0; j <= 1; j++) {
-                if (counter <= 9 && counter2 % 2 == 0) {
-                    arr[i][j] = String.valueOf(counter).charAt(0);
-                    counter2++;
-                } else {
-                    arr[i][j] = '|';
-                }
-            }
-        }
-
-        for (int i = SIZE - 1; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                arr[i][j] = '-';
-            }
-        }
-
-        arr[2][0] = '1';
-        arr[SIZE - 1][1] = '|';
-
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = SIZE - 1; j < SIZE; j++) {
-                arr[i][j] = '|';
+                char HIDDEN = '.';
+                field[i][j] = HIDDEN;
             }
         }
     }
 
-    private void placeMines() {
-        Random random = new Random();
-        int minePlaced = 0;
-        while (minePlaced < numberOfMines) {
-            int row = random.nextInt(10 - 2 + 1) + 2;
-            int col = random.nextInt(10 - 2 + 1) + 2;
-            if (arr[row][col] != 'X') {
-                arr[row][col] = 'X';
-                minePlaced++;
+    public void firstMove(int row, int col) {
+        if (firstMove) {
+            firstMove = false;
+            placeMines(row, col);
+            calculateNumbers();
+        }
+        reveal(row, col);
+    }
+
+    public boolean isFirstMove() {
+        return firstMove;
+    }
+
+    public void move(int row, int col, String choice) {
+        if (choice.equalsIgnoreCase("free") && !ifMineIsHere(row, col)) {
+            reveal(row, col);
+        } else if (choice.equalsIgnoreCase("mine")) {
+            setOrDeleteMark(row, col);
+        }
+    }
+
+    private void placeMines(int safeRow, int safeCol) {
+        int placedMines = 0;
+        while (placedMines < mines) {
+            int row = random.nextInt(SIZE);
+            int col = random.nextInt(SIZE);
+            if (field[row][col] == MINE || (row == safeRow && col == safeCol)) {
+                continue;
             }
+            field[row][col] = MINE;
+            mineCoordinates.add(new int[]{row, col});
+            placedMines++;
         }
     }
 
     private void calculateNumbers() {
-        for (int i = 2; i < SIZE - 1; i++) {
-            for (int j = 2; j < SIZE - 1; j++) {
-                if (arr[i][j] != 'X') {
-                    int counter = countAdjacentMines(i, j);
-                    if (counter > 0) {
-                        arr[i][j] = String.valueOf(counter).charAt(0);
-                    }
-                }
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (field[i][j] == MINE) continue;
+                int count = countMinesAround(i, j);
+                field[i][j] = count == 0 ? EMPTY : (char) ('0' + count);
             }
         }
     }
 
-    private int countAdjacentMines(int row, int col) {
+    private int countMinesAround(int row, int col) {
         int counter = 0;
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 int newRow = row + i;
                 int newCol = col + j;
-                if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE && arr[newRow][newCol] == 'X') {
+                if (isValid(newRow, newCol) && field[newRow][newCol] == MINE) {
                     counter++;
                 }
             }
@@ -108,45 +91,80 @@ public class Field {
         return counter;
     }
 
-    public void displayField() {
-        for (char[] chars : arr) {
-            for (int j = 0; j < arr.length; j++) {
-                System.out.print(chars[j]);
-            }
-            System.out.println();
-        }
-    }
+    private void reveal(int row, int col) {
+        if (!isValid(row, col) || revealed[row][col]) return;
 
-    public void hideMines() {
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                if (arr[i][j] == 'X') {
-                    mineCoordinates.add(new int[]{i - 1, j - 1});
-                    arr[i][j] = '.';
+        if (marks[row][col]) {
+            marks[row][col] = false;
+        }
+
+        revealed[row][col] = true;
+
+        if (field[row][col] == EMPTY) {
+            for (int i = -1; i <= 1; i++) {
+                for (int j = -1; j <= 1; j++) {
+                    if (i != 0 || j != 0) {
+                        reveal(row + i, col + j);
+                    }
                 }
             }
         }
     }
 
-    public boolean isCellNumber(int a, int b) {
-        return arr[b][a] == '.' || arr[b][a] == '*';
+    private boolean isValid(int row, int col) {
+        return row >= 0 && row < SIZE && col >= 0 && col < SIZE;
     }
 
-    public void setOrDeleteMark(int a, int b) {
-        if (isCellNumber(a, b) && arr[b][a] != '*') {
-            arr[b][a] = '*';
-        } else {
-            arr[b][a] = '.';
+    public void setOrDeleteMark(int row, int col) {
+        marks[row][col] = !marks[row][col];
+    }
+
+    public boolean isAllMinesFound() {
+        if (firstMove) {
+            return false;
+        }
+        for (int row = 0; row < SIZE; row++) {
+            for (int col = 0; col < SIZE; col++) {
+                if (field[row][col] == ('X') && !marks[row][col]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean isWin() {
+        for (int i = 0; i < field.length; i++) {
+            for (int j = 0; j < field[i].length; j++) {
+                if (field[i][j] != '*' && !revealed[i][j]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public void revealAllMines() {
+        for (int[] coords : mineCoordinates) {
+            int row = coords[0];
+            int col = coords[1];
+            revealed[row][col] = true;
         }
     }
 
-    public long countMines(int a, int b) {
-        return mineCoordinates.stream()
-                .filter(coord -> coord[0] == b - 1 && coord[1] == a - 1)
-                .count();
+    public boolean ifMineIsHere(int row, int col) {
+        return field[row][col] == MINE;
     }
 
-    public int getNumberOfMines() {
-        return numberOfMines;
+    public boolean[][] getMarks() {
+        return marks;
+    }
+
+    public char[][] getField() {
+        return field;
+    }
+
+    public boolean[][] getRevealed() {
+        return revealed;
     }
 }
